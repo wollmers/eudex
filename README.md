@@ -1,9 +1,18 @@
-# Eudex: A blazingly fast phonetic reduction/hashing algorithm.
+# !!NOT READY FOR PRODUCTION USE!!
+# Eudex: Phonetic reduction/hashing algorithm.
 (naive) C port of [ticki/eudex](https://github.com/ticki/eudex) phonetic reduction/hashing algorithm.
 
 
 # Installation
 ## Building from source (lib and test)
+
+usage
+```
+gcc eudex_test.c libeudex.c -ldl -o eudex_test
+```
+
+Cmake scripts is not finished yet. Sorry.
+
 Clone this repository
 ```
 cd eudex
