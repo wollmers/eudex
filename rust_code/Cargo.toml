@@ -1,0 +1,6 @@
+[package]
+name = "eudex_test"
+version = "0.1.1"
+
+[dependencies.eudex]
+git = "https://github.com/ticki/eudex.git"

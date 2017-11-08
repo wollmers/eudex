@@ -1,8 +1,8 @@
 #include "libeudex.h"
-#include <stdio.h>
 #include <string.h>
 
-static const unsigned char PHONES[] = { 0b00000000, // a
+static const unsigned long PHONES[] = {
+    0b00000000, // a
     0b01001000, // b
     0b00001100, // c
     0b00011000, // d
@@ -30,7 +30,8 @@ static const unsigned char PHONES[] = { 0b00000000, // a
     0b10010100  // z
     };
 
-static const unsigned char PHONES_C1[] = { 0b00010101, // ß
+static const unsigned long PHONES_C1[] = {
+    0b00010101, // ß
     0b00000000, // à
     0b00000000, // á
     0b00000000, // â
@@ -65,7 +66,8 @@ static const unsigned char PHONES_C1[] = { 0b00010101, // ß
     0b00000001, // ÿ
     };
 
-static const unsigned char INJECTIVE_PHONES[] = { 0b10000100, // a*
+static const unsigned long INJECTIVE_PHONES[] = {
+    0b10000100, // a*
     0b00100100, // b
     0b00000110, // c
     0b00001100, // d
@@ -93,7 +95,8 @@ static const unsigned char INJECTIVE_PHONES[] = { 0b10000100, // a*
     0b01001010 // z
     };
 
-static const unsigned long INJECTIVE_PHONES_C1[] = { 0b00001011, // ß
+static const unsigned long INJECTIVE_PHONES_C1[] = {
+    0b00001011, // ß
     0b10000101, // à
     0b10000101, // á
     0b10000000, // â
@@ -129,30 +132,28 @@ static const unsigned long INJECTIVE_PHONES_C1[] = { 0b00001011, // ß
     };
 
 static const int LETTERS = 26;
+static const char SKIP = '0';
 
 long distance(eudex_t a, eudex_t b);
 long popcount64(eudex_t x);
-long next_phonetic(eudex_t res, char letter);
-long first_phonetic(char letter);
-static inline int get_letter_index(char letter);
+unsigned long next_phonetic(eudex_t prev, char letter, char *result);
+unsigned long first_phonetic(char letter);
+int get_letter_index(char letter);
 
 eudex_t eudex_new(const char* input) {
-    int len = strlen(input);
-    if (len == 0) {
-        return INJECTIVE_PHONES[0];
-    }
+    unsigned long first_byte = *input != '\0' ? first_phonetic(*input) : 0;
+    ++input; // advance to next byte
 
-    long first_byte = len > 0 ? first_phonetic(*input) : 0;
-
-    char n = 1;
+    char n = 1; // limit to first 8 bytes of string (same as in rust impl)
     eudex_t res = 0L;
     while (1) {
         if ((n == 0) || (*input == '\0')) {
             break;
         }
 
-        long phonetic = next_phonetic(res, *input);
-        if (phonetic != -2) {
+        char r = '1';
+        unsigned long phonetic = next_phonetic(res, *input, &r);
+        if (r != SKIP) {
             res <<= 8;
             res |= phonetic;
             n <<= 1;
@@ -160,31 +161,32 @@ eudex_t eudex_new(const char* input) {
         ++input;
     }
 
-    return res | first_byte << 56L;
+    return res | (first_byte << 56L);
 }
 
 inline int get_letter_index(char letter) {
     return ((letter | 32) - 'a') & 0xFF;
 }
 
-long next_phonetic(eudex_t res, char letter) {
+unsigned long next_phonetic(eudex_t prev, char letter, char *result) {
     int index = get_letter_index(letter);
-    char c;
+    unsigned long c = 0L;
     if (index < LETTERS) {
         c = PHONES[index];
     } else if (index >= 0xDF && index < 0xFF) {
         c = PHONES_C1[index - 0xDF];
     } else {
-        return -2;
+        *result = SKIP;
     }
 
-    if ((c & 1) != (res & 1)) {
+    if ((c & 1) != (prev & 1)) {
         return c;
     }
-    return -2;
+    *result = SKIP;
+    return c;
 }
 
-long first_phonetic(char letter) {
+unsigned long first_phonetic(char letter) {
     int index = get_letter_index(letter);
 
     if (index < LETTERS) {
@@ -200,6 +202,7 @@ eudex_t eudex_dist(const char* input1, const char* input2) {
     return distance(eudex_new(input1), eudex_new(input2));
 }
 
+// not tested!
 long distance(eudex_t a, eudex_t b) {
     eudex_t dist = a ^ b;
     return popcount64(dist & 0xFF) + popcount64((dist >> 8) & 0xFF) * 2
@@ -211,7 +214,7 @@ long distance(eudex_t a, eudex_t b) {
         + popcount64((dist >> 56) & 0xFF) * 128;
 }
 
-long inline popcount64(eudex_t x) {
+inline long popcount64(eudex_t x) {
 
 #if defined(__GNUC__) || defined(__clang__)
     return __builtin_popcount(x);

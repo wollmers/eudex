@@ -1,40 +1,20 @@
-# !!NOT READY FOR PRODUCTION USE!!
-# Eudex: Phonetic reduction/hashing algorithm.
-(naive) C port of [ticki/eudex](https://github.com/ticki/eudex) phonetic reduction/hashing algorithm.
-
+#  C port of [ticki/eudex](https://github.com/ticki/eudex) Eudex: phonetic reduction/hashing algorithm.
 
 # Installation
-## Building from source (lib and test)
+## Building from source (lib and tests)
+Cmake scripts is not finished yet.
 
-usage
-```
-gcc eudex_test.c libeudex.c -ldl -o eudex_test
-```
 
-Cmake scripts is not finished yet. Sorry.
-
-Clone this repository
+# Tests
+Test data and run script is located inside test_data directory.
+Before running tests please install rustc compiler and cargo package manager (to build eudex reference data)
+Open terminal, navigate to test_data folder and run following command
 ```
-cd eudex
-mkdir build
-cmake -DCMAKE_INSTALL_PREFIX=/tmp/usr ..
-make
+sh ./test.sh
 ```
 
-Specify your own (or omit completely) CMAKE_INSTALL_PREFIX to change installation folder
 
-## Run tests
-```
-./eudex_test
-```
-
-## Install
-To install libeudex into default or CMAKE_INSTALL_PREFIX folder execute following from 'build' directory
-```
-make install
-```
-
-## Usage Example
+# Code example
 
 ```c
 #include <stdio.h>
