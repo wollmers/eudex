@@ -1,7 +1,7 @@
 #include "libeudex.h"
 #include <string.h>
 
-static const unsigned long PHONES[] = {
+static const uint64_t PHONES[] = {
     0b00000000, // a
     0b01001000, // b
     0b00001100, // c
@@ -30,7 +30,7 @@ static const unsigned long PHONES[] = {
     0b10010100  // z
     };
 
-static const unsigned long PHONES_C1[] = {
+static const uint64_t PHONES_C1[] = {
     0b00010101, // ß
     0b00000000, // à
     0b00000000, // á
@@ -66,7 +66,7 @@ static const unsigned long PHONES_C1[] = {
     0b00000001, // ÿ
     };
 
-static const unsigned long INJECTIVE_PHONES[] = {
+static const uint64_t INJECTIVE_PHONES[] = {
     0b10000100, // a*
     0b00100100, // b
     0b00000110, // c
@@ -95,7 +95,7 @@ static const unsigned long INJECTIVE_PHONES[] = {
     0b01001010 // z
     };
 
-static const unsigned long INJECTIVE_PHONES_C1[] = {
+static const uint64_t INJECTIVE_PHONES_C1[] = {
     0b00001011, // ß
     0b10000101, // à
     0b10000101, // á
@@ -134,14 +134,16 @@ static const unsigned long INJECTIVE_PHONES_C1[] = {
 static const int LETTERS = 26;
 static const char SKIP = '0';
 
-long distance(eudex_t a, eudex_t b);
-long popcount64(eudex_t x);
-unsigned long next_phonetic(eudex_t prev, char letter, char *result);
-unsigned long first_phonetic(char letter);
+uint64_t distance(eudex_t a, eudex_t b);
+uint64_t popcount64(eudex_t x);
+uint64_t next_phonetic(eudex_t prev, char letter, char *result);
+uint64_t first_phonetic(char letter);
 int get_letter_index(char letter);
 
+/* external functions */
+
 eudex_t eudex_new(const char* input) {
-    unsigned long first_byte = *input != '\0' ? first_phonetic(*input) : 0;
+    uint64_t first_byte = *input != '\0' ? first_phonetic(*input) : 0;
     ++input; // advance to next byte
 
     char n = 1; // limit to first 8 bytes of string (same as in rust impl)
@@ -152,7 +154,7 @@ eudex_t eudex_new(const char* input) {
         }
 
         char r = '1';
-        unsigned long phonetic = next_phonetic(res, *input, &r);
+        uint64_t phonetic = next_phonetic(res, *input, &r);
         if (r != SKIP) {
             res <<= 8;
             res |= phonetic;
@@ -164,13 +166,19 @@ eudex_t eudex_new(const char* input) {
     return res | (first_byte << 56L);
 }
 
+eudex_t eudex_dist(const char* input1, const char* input2) {
+    return distance(eudex_new(input1), eudex_new(input2));
+}
+
+/* internal implementation */
+
 inline int get_letter_index(char letter) {
     return ((letter | 32) - 'a') & 0xFF;
 }
 
-unsigned long next_phonetic(eudex_t prev, char letter, char *result) {
+uint64_t next_phonetic(eudex_t prev, char letter, char *result) {
     int index = get_letter_index(letter);
-    unsigned long c = 0L;
+    uint64_t c = 0L;
     if (index < LETTERS) {
         c = PHONES[index];
     } else if (index >= 0xDF && index < 0xFF) {
@@ -186,7 +194,7 @@ unsigned long next_phonetic(eudex_t prev, char letter, char *result) {
     return c;
 }
 
-unsigned long first_phonetic(char letter) {
+uint64_t first_phonetic(char letter) {
     int index = get_letter_index(letter);
 
     if (index < LETTERS) {
@@ -198,23 +206,18 @@ unsigned long first_phonetic(char letter) {
     return 0;
 }
 
-eudex_t eudex_dist(const char* input1, const char* input2) {
-    return distance(eudex_new(input1), eudex_new(input2));
-}
-
-// not tested!
-long distance(eudex_t a, eudex_t b) {
+uint64_t distance(eudex_t a, eudex_t b) {
     eudex_t dist = a ^ b;
     return popcount64(dist & 0xFF) + popcount64((dist >> 8) & 0xFF) * 2
-        + popcount64((dist >> 16) & 0xFF) * 4
-        + popcount64((dist >> 24) & 0xFF) * 8
-        + popcount64((dist >> 32) & 0xFF) * 16
-        + popcount64((dist >> 40) & 0xFF) * 32
-        + popcount64((dist >> 48) & 0xFF) * 64
-        + popcount64((dist >> 56) & 0xFF) * 128;
+        + popcount64((dist >> 16) & 0xFF) * 3
+        + popcount64((dist >> 24) & 0xFF) * 5
+        + popcount64((dist >> 32) & 0xFF) * 8
+        + popcount64((dist >> 40) & 0xFF) * 13
+        + popcount64((dist >> 48) & 0xFF) * 21
+        + popcount64((dist >> 56) & 0xFF) * 34;
 }
 
-inline long popcount64(eudex_t x) {
+inline uint64_t popcount64(eudex_t x) {
 
 #if defined(__GNUC__) || defined(__clang__)
     return __builtin_popcount(x);
